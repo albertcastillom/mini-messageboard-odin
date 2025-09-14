@@ -1,5 +1,7 @@
 const { randomUUID } = require("node:crypto"); // for stable IDs
+const db = require("../db/queries");
 
+// Temporary in-memory "database"
   const messages = [
   {
     id: randomUUID(),
@@ -17,7 +19,9 @@ const { randomUUID } = require("node:crypto"); // for stable IDs
 
 
 async function getMessages(req, res) {
-     res.render("index", {title: "Mini Messageboard", messages });
+    const messages = await db.getAllMessages();
+    res.render("index", {title: "Mini Messageboard", messages });
+    console.log(messages);
 }
 
 async function getNewMessageForm(req, res) {
@@ -25,22 +29,23 @@ async function getNewMessageForm(req, res) {
 }
 
 async function postNewMessage(req, res){
-     const user = (req.body.user || "").trim();
-  const text = (req.body.text || "").trim();
 
-  if (!user || !text) {
+  const username = (req.body.user || "").trim();
+  const message = (req.body.text || "").trim();
+
+  if (!username || !message) {
     return res.status(400).render("new", {
       title: "New Message",
       error: "Both fields are required.",
-      user, text,
+      username, message,
     });
   }
-
-  messages.push({ id: randomUUID(), text, user, added: new Date() });
+   const saved =  await db.addMessage(username, message);
   res.redirect("/");
 }
 
 async function getMessageById(req, res) {
+    const messages = await db.getAllMessages();
   const msg = messages.find(m => m.id === req.params.id);
   if (!msg) {
     return res.status(404).render("message", {
